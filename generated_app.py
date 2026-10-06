@@ -55,6 +55,8 @@ def init_session_state():
         st.session_state.menu_data = None
     if "show_menu" not in st.session_state:
         st.session_state.show_menu = False
+    if "last_uploaded_file_key" not in st.session_state:
+        st.session_state.last_uploaded_file_key = None
 
 # ユーザー情報CSVの生成
 def user_info_to_csv():
@@ -238,9 +240,13 @@ def main():
         st.download_button("ユーザ情報をCSVでダウンロード", data=csv_data.encode("utf-8-sig"), file_name="user_info.csv", mime="text/csv")
         uploaded_file = st.file_uploader("ユーザ情報CSVをアップロード", type=["csv"])
         if uploaded_file is not None:
-            if load_user_info_from_csv(uploaded_file):
-                st.success("ユーザ情報を読み込みました。")
-                st.rerun()
+            # 同一ファイルの再処理による無限ループを防止するため、ファイル識別キーで判定
+            file_key = f"{uploaded_file.name}_{uploaded_file.size}"
+            if st.session_state.last_uploaded_file_key != file_key:
+                if load_user_info_from_csv(uploaded_file):
+                    st.session_state.last_uploaded_file_key = file_key
+                    st.success("ユーザ情報を読み込みました。")
+                    st.rerun()
 
     col1, col2 = st.columns([1, 1])
     with col1:
